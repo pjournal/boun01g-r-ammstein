@@ -7,7 +7,7 @@ output: html_document
 
 # "R"ammstein Project Proposal
 
-Analzing the first marriage statistics in Turkey between 2009-2019 years for different genders, education levels and age groups.
+Analyzing the first marriage statistics in Turkey between 2009-2019 years for different genders, education levels and age groups.
 
 ## Group members
 
@@ -23,7 +23,7 @@ Analzing the first marriage statistics in Turkey between 2009-2019 years for dif
 
 Data is obtained from [TUIK site](https://biruni.tuik.gov.tr/medas/?kn=112&locale=tr). It contains numbers of first marriages between 2009-2019 years for different education levels and age groups.
 
-Data has 2568 rows and 3 variables "education level", "age group" , "year" and "gender"
+Data has 2568 rows and 4 variables which are "education level", "age group" , "year" and "gender"
 
 ## Project Plan
 
