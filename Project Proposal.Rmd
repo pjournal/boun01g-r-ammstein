@@ -11,12 +11,12 @@ Analzing the first marriage statistics in Turkey between 2009-2019 years for dif
 
 ## Group members
 
-Canan Kılıçkıran
-Ecemnaz Bay
-Yunus Emre Toprak
-Umut Mustafa Dilsiz
-Metin Yüksel Güngör
-Yusuf Beşiroğlu
+* Canan Kılıçkıran
+* Ecemnaz Bay
+* Yunus Emre Toprak
+* Umut Mustafa Dilsiz
+* Metin Yüksel Güngör
+* Yusuf Beşiroğlu
 
 
 ## Data Explanation
@@ -27,17 +27,17 @@ Data has 2568 rows and 3 variables "education level", "age group" , "year" and "
 
 ## Project Plan
 
-1.) Cleaning and formatting the data 
-2.) Exploration of the data
-3.) Analyze and visualize the data 
-4.) Overall, get insights from the data
+1. Cleaning and formatting the data 
+2. Exploration of the data
+3. Analyze and visualize the data 
+4. Overall, get insights from the data
 
 ## Objectives
 
-1.) Comparision of genders according to the number of their first marriage numbers 
-2.) Find the age groups that has maximum/minimum number of first marriages for each gender 
-3.) Find the education level that has maximum/minimum number of first marriages for each gender 
-4.) Explore the number of first marriages throughout the years
+1. Comparision of genders according to the number of their first marriage numbers 
+2. Find the age groups that has maximum/minimum number of first marriages for each gender 
+3. Find the education level that has maximum/minimum number of first marriages for each gender 
+4. Explore the number of first marriages throughout the years
 
 ## References
 
