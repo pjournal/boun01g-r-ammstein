@@ -13,6 +13,7 @@ Analyzing the New York City Airbnb Open Data from [Kaggle](https://www.kaggle.co
 Data includes information about accommodation places such as their prices, host names, mininum nights to stay, review statistics, availabilities ,room types, latitudes, longitudes, in which neighbourhood & neighbourhood group they are. 
 
 Here is the Assignment.
+Here is the [Shiny App Code and Path](https://pjournal.github.io/boun01g-r-ammstein/ShinyCodeReport.html).
 
 ## Group Project
 Analyzing the first marriage statistics in Turkey between 2009-2019 years for different genders, education levels and age groups.
