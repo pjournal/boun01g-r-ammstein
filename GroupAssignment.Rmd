@@ -1,0 +1,414 @@
+---
+title: "IE48A HW-New York City Airbnb Data Analysis"
+author: "RAMMSTEIN"
+date: "25 08 2020"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    toc_depth: 2
+---
+
+
+<style>
+
+#TOC {
+  color: #708090;
+  font-family: Calibri;
+  font-size: 16px; 
+  border-color: #708090;
+}
+
+#header {
+  color: #F08080;
+  background-color: #F5F5F5;
+  opacity: 0.6;
+  font-family: Calibri;
+  font-size: 42px;
+}
+
+body {
+  color: #708090;
+  font-family: Calibri;
+  background-color: #F5F5F5;
+}
+
+pre {
+  color: #708090;
+  background-color: #F8F8FF;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, error = FALSE)
+```
+
+```{r, include=FALSE}
+#Required Packages
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(tidyr)
+library(kableExtra)
+getwd()
+setwd("C:/Users/MERVE/Desktop")
+
+```
+
+# PRICE ANALYSIS
+
+## Data Import and Preparations
+
+Rows w/ Price=0 are eliminated from the raw data.
+
+```{r DataImport,warning=FALSE,message=FALSE}
+rawData<-readRDS("AB_NYC_2019.RDS")
+
+rawData_new <-
+  rawData %>%
+  filter(price>0) 
+```
+
+Summary data frames are created to use in price analysis.
+
+```{r summaryPrep,warning=FALSE,message=FALSE}
+PriceRange <- 
+  rawData_new %>% 
+  select(id,name,price)
+
+PriceSummary <-
+  PriceRange %>%
+  summarise(CountId=n_distinct(PriceRange$id),MinPrice=min(PriceRange$price),MaxPrice=max(PriceRange$price),MeanPrice=mean(PriceRange$price),MedianPrice=median(PriceRange$price))
+
+Prices_RoomTypes <-
+  rawData_new %>% 
+  select(id,name,room_type,price)
+
+Prices_Neigh <-
+  rawData_new %>% 
+  select(id,name,neighbourhood,neighbourhood_group,price)
+
+Prices_RoomTypes_Summarize <-
+  Prices_RoomTypes %>%
+  group_by(room_type) %>%
+  summarize(CountId=n_distinct(id),MinPrice=min(price),MaxPrice=max(price),MeanPrice=mean(price),MedianPrice=median(price))
+
+Prices_NeighbourhoodGroup_Summarize <-
+  Prices_Neigh %>%
+  group_by(neighbourhood_group) %>%
+  summarize(CountId=n_distinct(id),MinPrice=min(price),MaxPrice=max(price),MeanPrice=mean(price),MedianPrice=median(price))
+
+Prices_Neighbourhood_Summarize <-
+  Prices_Neigh %>%
+  group_by(neighbourhood,neighbourhood_group) %>%
+  summarize(CountId=n_distinct(id),MinPrice=min(price),MaxPrice=max(price),MeanPrice=mean(price),MedianPrice=median(price))
+
+top20PriceNeigh <-
+Prices_Neigh %>%
+  group_by(neighbourhood) %>%
+  arrange(desc(price)) %>%
+  slice(1:20)
+  
+top20PriceNeighGroup <-
+Prices_Neighbourhood_Summarize %>%
+  group_by(neighbourhood_group) %>%
+  arrange(desc(MeanPrice)) %>%
+  slice(1:20)
+```
+
+Overall summary of 48.884  observations with postive prices are as below.
+
+```{r SummaryTable }
+#knitr::kable(PriceSummary, format="markdown")
+  PriceSummary%>%
+  round(digits = 0)%>%
+  kbl() %>%
+  kable_minimal(full_width = F)
+```
+
+## Price Histogram
+
+Most of the observatins has price value up t0 250.
+Fill color is denoting the number of observations in each bin.
+
+```{r PriceHistogram , message=FALSE , warning=FALSE, error = FALSE}
+ggplot(PriceRange,aes(x=price,fill=..count..)) +
+  geom_histogram(binwidth = 30, na.rm=TRUE) +
+  scale_x_continuous(limits=c(0,2500)) +  
+  scale_y_log10() +
+  theme_minimal() +
+  scale_fill_gradient(low="tomato1", high="tomato4") +
+  ggtitle("Price Histogram") +
+  labs(y="Count of Price",x="Price Values") +
+  theme(axis.text.x = element_text(angle = 45), legend.title = element_blank())
+```
+
+## Mean Price Bar Charts
+
+Rooms with entire home type has the highest mean price value among all, as seen in the bar chart below.
+Dashed lines are denoting the meadian price for each room type in the same color.
+
+```{r RoomTypePrices,warning=FALSE, message=FALSE, error = FALSE}
+
+ggplot(Prices_RoomTypes_Summarize,aes(x=room_type,y=MeanPrice,fill=room_type,label=round(MeanPrice, digits = 0)
+)) +
+  geom_col() +
+  ggtitle("Mean Price Values per Room Type") +
+  theme_minimal() +
+  labs(y="Mean Price",x="Price Values") +
+  geom_text(position = position_dodge(2)) +
+  scale_fill_manual(values=c("indianred3","darkolivegreen4","darkslateblue")) +
+  geom_abline(slope = 0, intercept = Prices_RoomTypes_Summarize$MedianPrice, colour=c("red","lightgreen","blue"), 
+  linetype="dashed",show.legend=FALSE)+
+  scale_colour_manual(name='Lines',
+                      labels = c("Entire home/apt", "Private room" ,"Shared room"), 
+                      values=c("red","lightgreen","blue")) +
+  theme(legend.title = element_blank(),legend.position = "top")
+
+```
+
+Comparing the neighbourhood groups, Manhattan and Brooklyn have the highest mean price values mong all.
+
+
+```{r NeighbourhoodGroupMeanPrices,warning=FALSE, message=FALSE, error = FALSE}
+
+ggplot(Prices_NeighbourhoodGroup_Summarize,aes(x=neighbourhood_group,y=MeanPrice,fill=neighbourhood_group)) +
+  geom_col() +
+  ggtitle("Mean Price Values per Neighbourhood Group") +
+  theme_minimal() +
+  labs(y="Mean Price",x="Neighbourhood Group") +
+  scale_fill_manual(values=c("indianred3","darkolivegreen4","darkslateblue","plum","slategrey")) +
+  theme(legend.title = element_blank(),legend.position = "top")
+```
+
+In order to have a better understanding about the most expensive places in each neighbourhood group, top 20 neighbourhoods are selected.
+Mean price values of selected neighbourhoods are seen in the bar chart. 
+Slaten Islands group seems to have two outstanding neighbourhoods which have higher prices than others in average. Queens seems to have more balanced mean prices. 
+
+
+```{r Top20Neighbourhoods, warning=FALSE, message=FALSE, error = FALSE}
+
+ggplot(top20PriceNeighGroup,aes(x=neighbourhood,y=MeanPrice,fill=neighbourhood_group)) +
+  geom_col(position = "dodge") +
+  ggtitle("Mean Price Values for Top 20 Neighbourhoods") +
+  theme_minimal() +
+  labs(y="Mean Price") +
+  scale_fill_manual(values=c("indianred3","darkolivegreen4","darkslateblue","plum","slategrey")) +
+  theme(axis.text.x = element_blank(),legend.title = element_blank(),legend.position = "top") +
+  facet_wrap(~neighbourhood_group,scales = "free_x") 
+```
+
+
+# AVAILABILITY ANALYSIS
+
+## Numbers of unavaliable and full rooms
+
+There are 17.533 accomadation places that has 0 availability. This may means that these places are closed or fully booked.
+Also, 1295 accomadation places are avaliable for all 365 days.
+
+```{r Unavaliable-AvaliableRooms, message=FALSE, warning=FALSE, error = FALSE}
+
+Avl_0_365<-rawData%>%
+  filter(availability_365==0 | availability_365==365) %>%
+  group_by(neighbourhood_group,availability_365)%>%
+  count()%>%
+  pivot_wider(names_from = availability_365, values_from=n )
+
+  Avl_0_365 %>%
+  kbl() %>%
+  kable_minimal(full_width = F)
+  
+```
+We observed that, most of rooms in NYC have unavailability and it has highest value below Histogram.  
+
+```{r Availability Histogram , message=FALSE , warning=FALSE, error = FALSE}
+
+ggplot(rawData,aes(x=availability_365,fill=..count..)) +
+  geom_histogram(binwidth = 30, na.rm=TRUE) +
+  theme_minimal() +
+  ggtitle("Availability Histogram") +
+  theme_minimal() +
+  labs(y="Count of Availability",x="Availability") +
+  theme(axis.text.x = element_text(angle = 45), legend.title = element_blank())
+```
+
+## Average Availability of Regions
+
+According to below table, Brooklyn and Manhattan have most available rooms in NYC and Staten Island has the minumum available room in this chart.
+
+```{r RegionsAvailability, message=FALSE, warning=FALSE, error = FALSE}
+avl_Region<- rawData %>%
+  group_by(neighbourhood_group) %>%
+  summarise(CountId=n_distinct(id),
+            MinAvl =round(min(availability_365),digits = 0),
+            MeanAvl =round(mean(availability_365),digits = 0),
+            MaxAvl =round(max(availability_365),digits = 0),
+            MedianAvl =round(median(availability_365),digits = 0))
+
+avl_Region%>%
+  kbl() %>%
+  kable_minimal(full_width = F)
+
+```
+```{r}
+ggplot(avl_Region, aes(x=neighbourhood_group, y=CountId, fill= neighbourhood_group))+
+  geom_col()+
+  labs(title= "Availability of Neighbourhood Group",
+       x= "Neighbourhood Group", 
+       y= "Available Rooms") 
+  
+```
+
+
+  We can easily understand from the plot that the availability of Bronx and Staten Island which are region in NYC more than the other regions. We observed that other regions more preferable  from people.
+ 
+
+```{r AvgPriceNeighbourhood ,message=FALSE, warning=FALSE, error = FALSE}
+ ggplot(avl_Region,aes(neighbourhood_group, MeanAvl, fill = neighbourhood_group)) +
+        geom_col(stat = "identity")+
+        theme_minimal() +
+        labs(title=" Mean Average Prices vs Neighbourhood Group ",
+            x="Neighbourhood Group",
+            y="Mean Availability")
+```
+
+## Avarage Availability of Room Types
+
+```{r AvailabilityRoomtype, message=FALSE, warning=FALSE, error = FALSE}
+
+avl_Room_Type<- rawData %>%
+  group_by(room_type) %>%
+  summarise(CountId=n_distinct(id),
+            MinAvl =round(min(availability_365),digits = 0),
+            MeanAvl =round(mean(availability_365),digits = 0),
+            MaxAvl =round(max(availability_365),digits = 0),
+            MedianAvl =round(median(availability_365),digits = 0))
+
+avl_Room_Type%>%
+  kbl() %>%
+  kable_minimal(full_width = F)
+
+```
+In this pie chart, we analyzed three types of room in NYC and we discovered most people choose private rooms. Therefore, shared room is the most available room type in NYC for people.
+  
+```{r AnalysisRoomTYPE,message=FALSE, warning=FALSE, , error = FALSE}
+ pie(avl_Room_Type$MeanAvl, avl_Room_Type$room_type, col=c("orange2", "red2", "steelblue3"))+
+ theme_minimal() 
+
+```
+ 
+
+# REVIEW ANALYSIS
+
+## Summary of reviews by neighbourhood
+
+In the below table, there are total place number, mean of reviews, and the lowest - the highest review values for every neighbourhood group. People are mostly interested in Brooklyn, and Manhattan. All neighbourhood group's lowest review values are 0. Whereas, highest review values are different. Except the mean of reviews of Manhattan, the other neighbourhood groups's means are higher than the mean of all reviews(23.27447). Staten Island has the most popularity for searching accommodation. This popularity may be related with the fewness of total place number(373).
+
+```{r NeighbourhoodReviews, message=FALSE, warning=FALSE,  error = FALSE}
+
+rev_Summary_Neigh<- rawData %>%
+  group_by(neighbourhood_group)%>%
+  summarise(CountId=n_distinct(id),
+            MinAvl =round(min(number_of_reviews),digits = 0),
+            MeanAvl =round(mean(number_of_reviews),digits = 0),
+            MaxAvl =round(max(number_of_reviews),digits = 0),
+            MedianAvl =round(median(number_of_reviews),digits = 0))
+
+rev_Summary_Neigh%>%
+  kbl() %>%
+  kable_minimal(full_width = F)
+
+```
+```{r}
+ggplot(rev_Summary_Neigh, aes(x=neighbourhood_group, y=MeanAvl, fill= neighbourhood_group))+
+  geom_col()+
+  labs(title= "Means of Neighbourhood Group",
+       x= "Neighbourhood Group", 
+       y= "Mean") 
+  
+```
+
+
+## Summary of reviews by room type
+
+ This time, we carried out same analyzes for room type like the previous step. Most of people are interested in Entire home/apt, and Private room types. On the otherhand, Shared room type is less interested significantly. Only the mean of reviews of shared rooms is quite different. The other two room types's means are closer to the mean of all reviews. All room types's lowest reviews values equal to zero. On the other side, the highest review values of Entire home/apt, and Shared room are pretty close to each other. But, Private room type's highest value is higher than the both.
+ 
+```{r RoomtypeReviews, message = FALSE, warning = FALSE, error = FALSE}
+
+rev_Summary_Roomtype<- rawData %>%
+  group_by(room_type)%>%
+  summarise(CountId=n_distinct(id),
+            MinAvl =round(min(number_of_reviews),digits = 0),
+            MeanAvl =round(mean(number_of_reviews),digits = 0),
+            MaxAvl =round(max(number_of_reviews),digits = 0),
+            MedianAvl =round(median(number_of_reviews),digits = 0))
+
+rev_Summary_Roomtype%>%
+  kbl() %>%
+  kable_minimal(full_width = F)
+```
+```{r}
+ggplot(rev_Summary_Roomtype, aes(x=room_type, y=MeanAvl, fill= room_type))+
+  geom_col()+
+  labs(title= "Means of Rooms Types",
+       x= "Room Type", 
+       y= "Mean") 
+```
+
+
+This plot shows us the relationship between price and monthly review rate  for room types. According to the plot, people usually searched for private room. This interest may relative with the cheapness of the room type. In other respects, some of Entire home/apt rooms have extremely high prices. These extremely high prices brought along less rate of monthly reviews. When we look at the plot, we see pretty few black points which are represented Shared rooms because of the minority of total place number(1160). Also, there are not many Shared rooms which have high rates of monthly review. As a reason of this situation, people may have thought they couldn't be comfortable in this room type. 
+
+```{r Price-RoomtypesRelation, message = FALSE, warning = FALSE, error = FALSE}
+ggplot(rawData, aes(x = reviews_per_month, y = price))+
+    geom_point(aes(color = room_type))+
+    scale_color_manual(values = c("red", "blue", "black"))+
+    scale_x_continuous(limits=c(0,20))+
+    theme_minimal() +
+    scale_y_continuous(limits=c(0,2500))+
+    ggtitle("Reviews vs Price by room type") +
+    labs(y="Reviews per month",x="Price") +
+    theme(axis.text.x = element_text(angle = 45), legend.title = element_blank())+
+    facet_wrap(~room_type)
+
+```
+
+In the below plot, monthly reviews are shown for every room according to its coordinate points.
+
+```{r PriceReviewRelation, message = FALSE, warning = FALSE, error = FALSE}
+
+max_monthly_review <- max(rawData$reviews_per_month)
+min_monthly_review <- min(rawData$reviews_per_month)
+max_monthly_review
+
+monthly_review_map <- rawData %>%
+  select(longitude, latitude, reviews_per_month) 
+
+
+  ggplot(monthly_review_map, aes(x = latitude, y = longitude, color = reviews_per_month))+
+    geom_point(alpha = 0.9)+
+     theme_minimal() +
+   scale_color_gradient(low = "yellow", high = "grey")
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
