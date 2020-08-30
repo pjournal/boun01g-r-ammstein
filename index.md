@@ -9,7 +9,7 @@
 * Yusuf Beşiroğlu
 
 ## Group Homework
-Analyzing the New York City Airbnb Open Data from [Kaggle](https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data).
+Analyzing the New York City Airbnb Open Data obtained from [Kaggle](https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data).
 Data includes information about accommodation places such as their prices, host names, mininum nights to stay, review statistics, availabilities ,room types, latitudes, longitudes, in which neighbourhood & neighbourhood group they are. 
 
 * Here is the Assignment.
