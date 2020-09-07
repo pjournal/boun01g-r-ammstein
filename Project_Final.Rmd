@@ -1,0 +1,617 @@
+---
+title: "IE48A Group Project"
+author: "RAMMSTEIN"
+date: "02 09 2020"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    toc_depth: 3
+---
+
+<style>
+
+#TOC {
+  color: #708090;
+  font-family: Calibri;
+  font-size: 16px; 
+  border-color: #708090;
+}
+
+#header {
+  color: #F08080;
+  background-color: #F5F5F5;
+  opacity: 0.6;
+  font-family: Calibri;
+  font-size: 42px;
+}
+
+body {
+  color: #708090;
+  font-family: Calibri;
+  background-color: #F5F5F5;
+}
+
+pre {
+  color: #708090;
+  background-color: #F8F8FF;
+}
+</style>
+---
+# A. Key Takeaways
+
+ 1. The highest average number of first marriages observed at 20-24 age group for women and 25-29 for men.
+
+ 2. For women, the rate of average number of first marriage are increased in 25-29 age group. 
+
+ 3. For men, the rate of average number of first marriage show a rise in 30-34 age group.
+
+ 4. The average first marriage numbers for 16-19 aged women is almost 9 times higher than for the men at same age.
+
+ 5. Average number of first marriages for people that having higher education is increased through the years. 
+
+ 6. The average number of first marriages for primary school graduate women is decreased as more women can continue to their education in recent years. 
+
+ 7. Same number is increased for men between years 2009 – 2014 then decreased. Yet, the change is not  sharp as for women having primary education level.
+
+ 8. Average number of first marriages is decreased for high school graduate people since people are tend to have bachelor and higher degrees in recent years.
+
+
+# B. Dataset
+
+## Load Libraries
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(tidyr)
+library(kableExtra)
+library(openxlsx)
+library(readxl)
+library(scales)
+library(car)
+```
+
+## Download the Data
+
+ - First of all, two excel files for male and female data are downloaded from [TUIK site](https://biruni.tuik.gov.tr/medas/?kn=112&locale=tr) and remerged in order to import the files into R environment.
+
+ - The excel files (Male and Female) then uploaded to the group's [Github directory]("https://github.com/pjournal/boun01g-r-ammstein")
+
+ - Excel files are downloaded from github to a local data frames (MaleRawData, FemaleRawData) and prepared for analysis.The raw data structure can be seen in the manner of the number of variables, variable types and the number of observations. There are 3 variables and 854 observations to be analyzed for each excel files.
+ 
+```{r message=FALSE, warning=FALSE, error=FALSE}
+# Male data
+male=tempfile(fileext=".xlsx")
+download.file("https://github.com/pjournal/boun01g-r-ammstein/blob/gh-pages/Marriage_data_of_male_in_Turkey.xlsx?raw=TRUE",destfile=male,mode='wb') 
+MaleRawData = read.xlsx(male) 
+file.remove(male)
+
+# Female data
+female=tempfile(fileext=".xlsx")
+download.file("https://github.com/pjournal/boun01g-r-ammstein/blob/gh-pages/Marriage_data_of_female_in_Turkey.xlsx?raw=TRUE",destfile=female,mode='wb') 
+FemaleRawData = read.xlsx(female) 
+file.remove(female)
+
+```
+
+
+## Preprocessing the Data
+
+ - Firstly, In order to have meaningfull data, we removed all unnecessary information in the first columns by sub() function.
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+
+MaleOrganized<- sub(pattern = "Erkeğin yaş grubu:", replacement = "", x = MaleRawData[,1])
+MaleOrganized2<-sub(pattern = "ve Erkeğin eğitim durumu:", replacement = "", x = MaleOrganized)
+MaleOrganized3<-data.frame(MaleOrganized2, ncol=1, byrow=TRUE) %>% select(A=MaleOrganized2)
+```
+
+ - Then, we formed two new columns by seperating the first columns according to age groups, and education levels.
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+MaleOrganized4<-MaleOrganized3 %>% mutate(A = str_replace(A, "\\s", "|")) %>% 
+          separate(A, into = c("first", "rest"), sep = "\\|")
+```
+
+ - We created a data frame with cbind() function, renamed all columns, and also added a new column named "Gender".
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+
+MaleOrganized5<-cbind(MaleOrganized4,MaleRawData[,2:3]) %>% 
+                rename( AgeGroup=first,EducationLevel=rest,Year=A2,NbOfFirstMarriages=A3) %>%
+                mutate(Gender="Male")
+```
+
+ - We did these steps for FemaleRawData as well.
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+FemaleOrganized<- sub(pattern = "Kadının yaş grubu:", replacement = "", x = FemaleRawData[,1])
+FemaleOrganized2<-sub(pattern = "ve Kadının eğitim durumu:", replacement = "", x = FemaleOrganized)
+FemaleOrganized3<-data.frame(FemaleOrganized2, ncol=1, byrow=TRUE) %>% select(A=FemaleOrganized2)
+FemaleOrganized4<-FemaleOrganized3 %>% mutate(A = str_replace(A, "\\s", "|")) %>% 
+          separate(A, into = c("first", "rest"), sep = "\\|")
+
+FemaleOrganized5<-cbind(FemaleOrganized4,FemaleRawData[,2:3]) %>% 
+                rename( AgeGroup=first,EducationLevel=rest,Year=A2,NbOfFirstMarriages=A3) %>%
+                mutate(Gender="Female")
+```
+
+ - As can be expected, these "Gender" columns's observations are printed as "Male" for Male Data, and "Female" for Female Data. Then, we united both male and female data by using rbind() function, and assigned to a new data frame named "rawDataOrganized". Then, we have converted characters into factors.
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+rawDataOrganized<-rbind(MaleOrganized5,FemaleOrganized5) 
+
+rawDataOrganized[,1]<-as.factor(rawDataOrganized[,1])
+rawDataOrganized[,2]<-as.factor(rawDataOrganized[,2])
+rawDataOrganized[,5]<-as.factor(rawDataOrganized[,5])
+
+# There are only 3 rows that has unknown age group, so we deleted this rows
+
+rawDataOrganized<-rawDataOrganized %>% 
+                 filter(AgeGroup!="Bilinmeyen")
+
+saveRDS(rawDataOrganized,file="FinalProjectRawData.RDS")
+```
+
+ - Finally, we have the processed data which includes 5 columns and 1709	rows. The columns are explained below:
+
+     - AgeGroup: There are 10 age groups consists of 4 years age period range,such as 16-19, and plus one unknown group
+     - EducationLevel: There are 7 levels of education levels and an unknown level 
+         + İlköğretim: Primary school
+         + Ortaokul Veya Dengi Meslek Ortaokul: Secondary School Or Equivalent Vocational Secondary School Education Level
+         + Lise Ve Dengi Meslek Okulu: High school or equivalent vocational school
+         + Okuma Yazma Bilen Fakat Bir Okul Bitirmeyen: People who are literate but have not graduated from any school
+         + Okuma Yazma Bilmeyen: People who are illiterate
+         + Yüksek Öğretim:  High education level
+         + Bilinmeyen: Educational status is unknown
+         
+     - Year: Year between 2009 and 2019
+     - NbOfFirstMarriages: Total number of first marriages in given time period
+     - Gender: Male or Female
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+glimpse(rawDataOrganized)
+```
+
+
+# C. Explore and Visualize Data
+
+## Analyze for Age Groups 
+
+Between years 2009 and 2019, average ~ 499 thousand men and women are married each year according to the data. 
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+rawData_Total<-rawDataOrganized %>% 
+  group_by(Year,Gender) %>% 
+  summarise(total=sum(NbOfFirstMarriages)) 
+
+ rawData_Total%>%
+  pivot_wider(names_from = Gender, values_from=total ) %>%
+  kbl()%>%
+  kable_minimal(full_width = F)
+ 
+```
+
+ - Total average number of first marriages started to decline after year 2013 for women and 2014 for men, but the decrease is more prominent for women.
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(rawData_Total, aes(x=Year, y=total, fill=Gender))+
+       geom_col() +
+       labs(title="Yearly Average First Marriages",
+            y="Average First Marriage Numbers",
+            x="Year") +
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            theme_minimal()+
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=rawData_Total,aes(x = Year, y = total, group=1),
+              method = "lm", se= FALSE, color = "slategray4", size = 2, )
+
+```
+
+ - In the table below, we examine the number of first marriages of men and women between 2009 and 2019, by age range.
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+age_rawData<-rawDataOrganized %>%
+  group_by(AgeGroup,Year,Gender) %>%
+  summarise(Avg=round(mean(NbOfFirstMarriages),digits = 0))
+
+age_rawData %>%
+  pivot_wider(names_from = Gender, values_from=Avg ) %>%
+  kbl() %>%
+  kable_minimal(full_width = F)
+```
+
+ - There are few observations for 50+ age ranges, so we united these age groups into single age group 50+.
+ - We can see that in general there is a decrease in the number of first marriages for women and men. In addition, the number of first marriages of women started to decrease significantly after 2014. The highest difference between men and women is in the 16-19 age range. The average number of first marriage for women in the 16-19 age range is considerably higher than that of men.
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+age_rawData_group<-age_rawData
+age_rawData_group$AgeGroup<-recode(age_rawData$AgeGroup,'
+                "50-54" = "50+";
+                "55-59" = "50+";
+                "60+" = "50+"')
+  
+age_rawData_group<-age_rawData_group %>%
+          group_by(AgeGroup,Year,Gender) %>%
+          summarize(Avg=sum(Avg))
+
+
+#Bar graph
+ggplot(age_rawData_group, aes(x=Year, y=Avg, fill=AgeGroup))+
+       geom_col() +
+       labs(title="Yearly Average First Marriage Trend For Each Age Group",
+            y="Average First Marriage Numbers",
+            x="Year") +
+            theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender)
+```
+
+ - As stated above, the age range with the highest difference in the number of first marriage for men and women is 16-19. In addition, when the change by years is analyzed, it is seen that the average number of marriages of women between the ages of 16-19 has decreased in recent years. In addition, the change over the years in the number of marriages of men is quite low.
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(age_rawData_group[age_rawData_group$AgeGroup=="16-19",], aes(x=Year, y=Avg, fill=AgeGroup))+
+       geom_col(color="black",
+                fill="darkslateblue") +
+       labs(title="Yearly Average First Marriage Trend For 16-19 Group",
+            y="Average First Marriage Numbers",
+            x="Year") +
+            theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=age_rawData_group[age_rawData_group$AgeGroup=="16-19",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+
+ - In both plots it can be seen that there is a decrease in the number of first marriages for women and men between the ages of 20-24. The maximum number of married men and women in this age group was realized in 2013.
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(age_rawData_group[age_rawData_group$AgeGroup=="20-24",], aes(x=Year, y=Avg, fill=AgeGroup))+
+       geom_col(color="black",
+                fill="darkslateblue") +
+       labs(title="Yearly Average First Marriage Trend For 20-24 Group",
+            y="Average First Marriage Numbers",
+            x="Year") +
+            theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=age_rawData_group[age_rawData_group$AgeGroup=="20-24",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+
+ - There was a slight increase in the number of first marriages among women aged 25-29 between 2009 and 2019. Although there was a slight increase and decrease in the number of marriages of men between these years, the average number of men reached its maximum value in 2014.
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(age_rawData_group[age_rawData_group$AgeGroup=="25-29",], aes(x=Year, y=Avg, fill=AgeGroup))+
+       geom_col(color="black",
+                fill="darkslateblue") +
+       labs(title="Yearly Average First Marriage Trend For 25-29 Group",
+            y="Average First Marriage Numbers",
+            x="Year") +
+            theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=age_rawData_group[age_rawData_group$AgeGroup=="25-29",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+
+ - The average number of first marriage for women between the ages of 30-34 is quite low compared to men. The changes in the number of marriages of women between 2009 and 2019 are very close to each other for each year. When the men plot is examined, an increase is seen until 2015, and although there has been a small decrease in the following years, a linear increase has been observed in the number of marriages in general.
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(age_rawData_group[age_rawData_group$AgeGroup=="30-34",], aes(x=Year, y=Avg, fill=AgeGroup))+
+       geom_col(color="black",
+                fill="darkslateblue") +
+       labs(title="Yearly Average First Marriage Trend For 30-34 Group",
+            y="Average First Marriage Numbers",
+            x="Year") +
+            theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=age_rawData_group[age_rawData_group$AgeGroup=="30-34",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+
+ - While the number of female married for the first time in the 35-39 age group did not increase much between 2009 and 2019, there was a significant increase in the number of first-time male. In this age group, more male who marry for the first time are more than female.
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(age_rawData_group[age_rawData_group$AgeGroup=="35-39",], aes(x=Year, y=Avg, fill=AgeGroup))+
+       geom_col(color="black",
+                fill="darkslateblue") +
+       labs(title="Yearly Average First Marriage Trend For 35-39 Group",
+            y="Average First Marriage Numbers",
+            x="Year") +
+            theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=age_rawData_group[age_rawData_group$AgeGroup=="35-39",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+ 
+ - In the plot below, it is observed that the average number of marriages of men and women increased linearly over the years. Although there was an increase in the number of marriages between 2009 and 2019, when the average number of marriages in the 40-44 age range is examined, it is clearly seen that the average of first marriage is quite low as people get older.
+
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(age_rawData_group[age_rawData_group$AgeGroup=="40-44",], aes(x=Year, y=Avg, fill=AgeGroup))+
+       geom_col(color="black",
+                fill="darkslateblue") +
+       labs(title="Yearly Average First Marriage Trend For 40-44 Group",
+            y="Average First Marriage Numbers",
+            x="Year") +
+            theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=age_rawData_group[age_rawData_group$AgeGroup=="40-44",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+ 
+ - There is an increase in the number of both male and female who marry for the first time in the 45-49 age group. In these age groups, there is not much difference between the number of female and male who married for the first time.
+
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(age_rawData_group[age_rawData_group$AgeGroup=="45-49",], aes(x=Year, y=Avg, fill=AgeGroup))+
+       geom_col(color="black",
+                fill="darkslateblue") +
+       labs(title="Yearly Average First Marriage Trend For 45-49 Group",
+            y="Average First Marriage Numbers",
+            x="Year") +
+            theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=age_rawData_group[age_rawData_group$AgeGroup=="45-49",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+ 
+ - Although an overall increase is observed in both plots for men and women over the years, small decreases were observed in some years. When evaluated according to age groups, the average number of first marriage of 50+ people has the lowest share among other age groups.
+ 
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(age_rawData_group[age_rawData_group$AgeGroup=="50+",], aes(x=Year, y=Avg, fill=AgeGroup))+
+       geom_col(color="black",
+                fill="darkslateblue") +
+       labs(title="Yearly Average First Marriage Trend For 50+ Group",
+            y="Average First Marriage Numbers",
+            x="Year") +
+             theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=age_rawData_group[age_rawData_group$AgeGroup=="50+",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+
+ 
+ - The highest average number of first marriages has occured at 20-24 age group for women and 25-29 for men.
+
+ - For women, the rate of average number of first marriage  are increased in 25-29 age group. Also, the rate of average number of first marriage show a rise for 30-34 aged men.
+
+ - The average first marriage numbers for 16-19 aged women is almost 9 times higher than for the men at same age.
+ 
+ 
+
+
+## Analyze for Education Levels
+
+ - The average number of first marriages for women and men that graduated from college has increased throught the years. The reason for this incrase may be due to increasing number of  people having bachelor’s or higher degree.
+ 
+ - The average number of first marriages for women that has only elementary school degree is decreased because throught the year more and more women has more than just an elementary degree. As for men, from 2009 to 2014 the average is increased for elementary school educated men, and then it showed an decrease but not as prominent as for women that has same education level.
+ 
+ - The average number of first marriages for both male and women graduated from high school etc. are decreased since people are tend to have higher degree than high school.
+
+```{r message=FALSE, warning=FALSE, error=FALSE, out.width = '80%'}
+Edu_rawData<-rawDataOrganized %>%
+              group_by(EducationLevel,Year,Gender) %>%
+              summarise(Avg=round(mean(NbOfFirstMarriages),digits = 0))
+
+Edu_rawData %>%
+  pivot_wider(names_from = Gender, values_from=Avg )%>%
+  kbl() %>%
+  kable_minimal(full_width = F)
+
+```
+
+
+
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(Edu_rawData, aes(x=Year, y=Avg, fill=EducationLevel))+
+       geom_col() +
+       labs(title="Yearly Average First Marriage Trend For Each Education Level",
+            y="Average First Marriage Numbers",
+            x="Year") +
+        theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90), 
+                  legend.position = "top" ,
+                  legend.text=element_text(size=10))+
+            facet_wrap(~Gender)
+
+```
+
+ - Between 2009-20014, there was an increase in the number of primary school graduates who married for the first time, but after 2014 this number started to decrease. The number of male who married for the first time has increased from 2009 to 2018, but there has been a decline in the last year.
+
+```{r  message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(Edu_rawData[Edu_rawData$EducationLevel=="İlköğretim",], aes(x=Year, y=Avg))+
+       geom_col(color="black",
+                fill="steelblue") +
+       labs(title="Yearly Average First Marriage Trend For İlköğretim Education Level",
+            y="Average First Marriage Numbers",
+            x="Year") +
+             theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=Edu_rawData[Edu_rawData$EducationLevel=="İlköğretim",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+
+- When we examine the table below, it has been observed that the average number of first marriage of women and men who graduated from high school or equivalent vocational school has increased between 2009 and 2014, and a significant decrease is observed in the rate of first marriage of men and women in the period after 2015. When the educational status data are examined in general, especially the number of first marriage of high school and equivalent school graduates is higher than the others when compared with other education levels.
+
+
+```{r  message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(Edu_rawData[Edu_rawData$EducationLevel=="Lise Ve Dengi Meslek Okulu",], aes(x=Year, y=Avg))+
+       geom_col(color="black",
+                fill="steelblue") +
+       labs(title="Yearly Average First Marriage Trend For Lise Ve Dengi Meslek Okulu Education Level",
+            y="Average First Marriage Numbers",
+            x="Year") +
+             theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=Edu_rawData[Edu_rawData$EducationLevel=="Lise Ve Dengi Meslek Okulu",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+
+```
+
+ - There is a fluctuation over the years in the number of first marriages of women who are literate but have not graduated from any school. The year 2014 was the year when women in this education category got married the most, and there was a dramatic decrease in the rate of first marriage among women between 2015 and 2019. In the table, the average number of first marriage of men who are literate but do not graduate from any school is quite low compared to women, and a clear decrease has been observed after 2015.
+
+
+```{r  message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(Edu_rawData[Edu_rawData$EducationLevel=="Okuma Yazma Bilen Fakat Bir Okul Bitirmeyen",], aes(x=Year, y=Avg))+
+       geom_col(color="black",
+                fill="steelblue") +
+       labs(title="Yearly Average First Marriage Trend For Okuma Yazma Bilen Fakat Bir Okul Bitirmeyen Education Level",
+            y="Average First Marriage Numbers",
+            x="Year") +
+             theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=Edu_rawData[Edu_rawData$EducationLevel=="Okuma Yazma Bilen Fakat Bir Okul Bitirmeyen",],
+                        aes(x = Year, y = Avg, group=1),method = "lm", se= FALSE, color = "gold3", size = 2, )
+
+```
+
+ - When we look at the graph below, the number of people who are illiterate and married for the first time is quite low, and it has been decreasing for both genders from 2009 to 2019. If we compare both sexes within themselves, the number of women who married for the first time without being illiterate is more than men.
+
+```{r  message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(Edu_rawData[Edu_rawData$EducationLevel=="Okuma Yazma Bilmeyen",], aes(x=Year, y=Avg))+
+       geom_col(color="black",
+                fill="steelblue") +
+       labs(title="Yearly Average First Marriage Trend For Okuma Yazma Bilmeyen Education Level",
+            y="Average First Marriage Numbers",
+            x="Year") +
+             theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=Edu_rawData[Edu_rawData$EducationLevel=="Okuma Yazma Bilmeyen",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+
+ - The education level with the lowest average number of marriages between 2009-20014 is Ortaokul Veya Dengi Meslek Ortaokul Education Level. The number of people married for the first time at this educational level is increasing for women and for men, it increased in 2015, then decreased until 2018 and reached its highest level in 2019.
+
+```{r  message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(Edu_rawData[Edu_rawData$EducationLevel=="Ortaokul Veya Dengi Meslek Ortaokul",], aes(x=Year, y=Avg))+
+       geom_col(color="black",
+                fill="steelblue") +
+       labs(title="Yearly Average First Marriage Trend For Ortaokul Veya Dengi Meslek Ortaokul Education Level",
+            y="Average First Marriage Numbers",
+            x="Year") +
+             theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=Edu_rawData[Edu_rawData$EducationLevel=="Ortaokul Veya Dengi Meslek Ortaokul",],
+                        aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+
+ - The number of first marriages of higher education graduate women and men was low between 2009 and 2014, but after 2015, the number of marriages of men and women increased significantly. When the education level data is analyzed, especially in recent years, with the increase in the level of education, an increase is observed in the average number of first marriages and higher education graduates' marriage rates are higher than other education groups.
+
+
+```{r  message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(Edu_rawData[Edu_rawData$EducationLevel=="Yüksek Öğretim",], aes(x=Year, y=Avg))+
+       geom_col(color="black",
+                fill="steelblue") +
+       labs(title="Yearly Average First Marriage Trend For Yüksek Öğretim  Education Level",
+            y="Average First Marriage Numbers",
+            x="Year") +
+             theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=Edu_rawData[Edu_rawData$EducationLevel=="Yüksek Öğretim",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+
+ - When we analyzed in the table below, there is a clear decrease in the average number of first marriages between 2009 and 2019 for men and women whose educational status is unknown, and the rates of first marriage for men and women between 2015 and 2019 are very close to each other.
+
+
+```{r  message=FALSE, warning=FALSE, error=FALSE, fig.width= 12, fig.align = "center"}
+
+ggplot(Edu_rawData[Edu_rawData$EducationLevel=="Bilinmeyen",], aes(x=Year, y=Avg))+
+       geom_col(color="black",
+                fill="steelblue") +
+       labs(title="Yearly Average First Marriage Trend For Bilinmeyen Education Level",
+            y="Average First Marriage Numbers",
+            x="Year") +
+             theme_minimal()+
+            theme(axis.text.x = element_text(angle = 90))+
+            facet_wrap(~Gender) +
+            scale_y_continuous(labels=comma)+
+            geom_smooth(data=Edu_rawData[Edu_rawData$EducationLevel=="Bilinmeyen",],aes(x = Year, y = Avg, group=1),
+                        method = "lm", se= FALSE, color = "gold3", size = 2, )
+```
+
+
+# D. Future Work 
+
+This analysis can further be expanded by adding total population statistics by age and education levels.
+
+# E. References
+
+ - https://biruni.tuik.gov.tr/medas/?kn=112&locale=tr
+ - https://statisticsglobe.com/change-formatting-of-numbers-of-ggplot2-plot-axis-in-r
+ - https://stackoverflow.com/questions/57881907/regression-line-with-geom-bar-in-ggplot2
+ - https://stackoverflow.com/questions/46824998/adding-percent-change-between-bars-on-a-ggplot/46826687
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
