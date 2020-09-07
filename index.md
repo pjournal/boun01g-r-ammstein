@@ -28,7 +28,7 @@ Data is obtained from [TUIK site](https://biruni.tuik.gov.tr/medas/?kn=112&local
 * Here is the [Project Proposal](https://pjournal.github.io/boun01g-r-ammstein/Project-Proposal.html).
 * Here is the [Explanatory Data Analysis](https://pjournal.github.io/boun01g-r-ammstein/Project_Faz1.html).
 * Here is the [Shiny App Code and Path](https://pjournal.github.io/boun01g-r-ammstein/Project_ShinyCodeReport.html).
-* Here is the Final report.
+* Here is the [Final report](https://pjournal.github.io/boun01g-r-ammstein/Project_Final.html).
 * Here is the Presentation.
 
  
