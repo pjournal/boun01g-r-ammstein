@@ -19,7 +19,8 @@ Data includes information about accommodation places such as their prices, host 
 Explaining and providing both written and lived video tutorials about Golem package.
 
 * Here is the Written Tutorial.
-* Here is the Video Tutorial.
+* Here is the [Video Tutorial](https://github.com/pjournal/boun01g-r-ammstein/blob/gh-pages/golem.mp4?raw=TRUE)/[Youtube Link](https://www.youtube.com/watch?v=W48Q_3MU9y4&ab_channel=metiny%C3%BCkselg%C3%BCng%C3%B6r).
+
 
 ## Group Project
 Analyzing the first marriage statistics in Turkey between 2009-2019 years for different genders, education levels and age groups.
